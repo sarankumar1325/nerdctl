@@ -663,11 +663,15 @@ func ParseExtraHosts(extraHosts []string, hostGatewayIP, separator string) ([]st
 	const hostGatewayName = "host-gateway"
 	hosts := make([]string, 0, len(extraHosts))
 	for _, hostToIP := range strutil.DedupeStrSlice(extraHosts) {
-		if _, err := dockercliopts.ValidateExtraHost(hostToIP); err != nil {
+		// ValidateExtraHost accepts both "host:ip" and "host=ip" (Docker parity),
+		// and strips square brackets around IPv6 addresses. Use its normalized
+		// "host:ip" result rather than the raw flag value.
+		normalized, err := dockercliopts.ValidateExtraHost(hostToIP)
+		if err != nil {
 			return nil, err
 		}
 
-		parts := strings.SplitN(hostToIP, ":", 2)
+		parts := strings.SplitN(normalized, ":", 2)
 		if len(parts) != 2 {
 			return nil, fmt.Errorf("invalid host-to-IP map %s", hostToIP)
 		}
